@@ -5,10 +5,118 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  schedules PersonalSchedule[]
+
+  sentFriendRequests     FriendRequest[] @relation("FriendRequestFrom")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestTo")
+
+  friendships Friendship[] @relation("FriendshipUser")
+  friendsOf   Friendship[] @relation("FriendshipFriend")
+
+  groupMembers GroupMember[]
+}
+
+model FriendRequest {
+  id        String              @id @default(cuid())
+  fromId    String
+  toId      String
+  status    FriendRequestStatus @default(PENDING)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  from User @relation("FriendRequestFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   User @relation("FriendRequestTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId])
+  @@index([toId, status, createdAt])
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+
+  members GroupMember[]
+}
+
+model GroupMember {
+  id       String    @id @default(cuid())
+  groupId  String
+  userId   String
+  role     GroupRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+}
+
+enum GroupRole {
+  OWNER
+  MEMBER
+}
+
+model PersonalSchedule {
+  id     String @id @default(cuid())
+  userId String
+
+  subject   String
+  professor String
+  classroom String
+
+  day       WeekDay
+  startHour Int
+  endHour   Int
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, day])
+}
+
+enum WeekDay {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
 }
