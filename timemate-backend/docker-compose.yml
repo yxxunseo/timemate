@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    container_name: timemate-db
+    environment:
+      POSTGRES_USER: timemate
+      POSTGRES_PASSWORD: timemate_pw
+      POSTGRES_DB: timemate
+    ports:
+      - "5432:5432"
+    volumes:
+      - timemate_db:/var/lib/postgresql/data
+volumes:
+  timemate_db:
